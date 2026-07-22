@@ -1,7 +1,18 @@
 import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
-const api = axios.create({ baseURL: BASE_URL });
+const api = axios.create({ baseURL: BASE_URL, timeout: 60000 });
+
+api.interceptors.response.use(
+  (r) => r,
+  async (err) => {
+    const config = err.config;
+    if (!config || config._retryCount >= 2) return Promise.reject(err);
+    config._retryCount = (config._retryCount || 0) + 1;
+    await new Promise((r) => setTimeout(r, 3000));
+    return api(config);
+  },
+);
 
 export interface Bot {
   id: string;
