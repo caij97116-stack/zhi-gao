@@ -2,8 +2,7 @@ import { schedule, validate } from 'node-cron';
 import type { ScheduledTask } from 'node-cron';
 import { getDatabase } from '../db/database.js';
 import { botManager } from './botManager.js';
-import { decryptToken } from './crypto.js';
-import { Client, GatewayIntentBits, TextChannel } from 'discord.js';
+import { TextChannel } from 'discord.js';
 import type { ScheduleRow, CommandRow, BotRow } from '../models/types.js';
 
 class CronScheduler {
@@ -55,15 +54,16 @@ class CronScheduler {
       return;
     }
 
-    try {
-      const token = decryptToken(bot.token);
-      const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
-      await client.login(token);
+    const client = botManager.getClient(botId);
+    if (!client || !client.isReady()) {
+      botManager.events.emit('log', { botId, timestamp: new Date().toISOString(), type: 'error', message: `定时任务执行失败: Bot 客户端未就绪` });
+      return;
+    }
 
+    try {
       const channel = await client.channels.fetch(channelId) as TextChannel;
       if (!channel) {
         botManager.events.emit('log', { botId, timestamp: new Date().toISOString(), type: 'error', message: `定时任务失败: 频道 ${channelId} 不可用` });
-        client.destroy();
         return;
       }
 
@@ -84,8 +84,6 @@ class CronScheduler {
         message: `定时任务执行: /${commandName} → ${channel.name || channelId}`,
         commandName,
       });
-
-      client.destroy();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       botManager.events.emit('log', { botId, timestamp: new Date().toISOString(), type: 'error', message: `定时任务执行错误: ${msg}` });

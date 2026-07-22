@@ -123,16 +123,6 @@ export interface GuildChannel {
   type: number;
 }
 
-export interface GuildRole {
-  id: string;
-  name: string;
-  color: string;
-  position: number;
-  memberCount: number;
-  hoist: boolean;
-  managed: boolean;
-}
-
 export const botsApi = {
   list: () => api.get<Bot[]>('/bots').then((r) => r.data),
   create: (data: { name: string; token: string; avatar?: string; templateId?: string }) =>

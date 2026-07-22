@@ -50,12 +50,13 @@ class BotManager {
         db.prepare('UPDATE bots SET status = ?, client_id = ? WHERE id = ?').run('online', readyClient.user.id, botId);
         this.log({ botId, type: 'start', message: `${bot.name} 已上线`, eventType: 'start' });
 
-        db.prepare('UPDATE bots SET client_id = ? WHERE id = ?').run(readyClient.user.id, botId);
-
         if (readyClient.guilds.cache.size > 0) {
           const guildId = readyClient.guilds.cache.first()!.id;
           db.prepare('UPDATE bots SET guild_id = ? WHERE id = ?').run(guildId, botId);
         }
+
+        this.registerCommands(botId, client);
+        this.registerEvents(botId, client);
       });
 
       client.on(DiscordEvents.Error, (error) => {
@@ -66,11 +67,6 @@ class BotManager {
 
       await client.login(token);
       this.clients.set(botId, client);
-
-      client.once(DiscordEvents.ClientReady, () => {
-        this.registerCommands(botId, client);
-        this.registerEvents(botId, client);
-      });
     } catch (err) {
       db.prepare('UPDATE bots SET status = ? WHERE id = ?').run('error', botId);
       throw err;
