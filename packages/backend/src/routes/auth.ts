@@ -32,19 +32,28 @@ interface DiscordGuild {
 
 const sessions = new Map<string, { accessToken: string; user: DiscordUser }>();
 
-authRouter.get('/discord', (_req: Request, res: Response) => {
+authRouter.get('/discord', (req: Request, res: Response) => {
   if (!CLIENT_ID || !CLIENT_SECRET) {
     res.json({ error: 'NOT_CONFIGURED', message: 'Discord OAuth2 未配置，请设置 DISCORD_CLIENT_ID 和 DISCORD_CLIENT_SECRET 环境变量' });
     return;
   }
+
+  // 自动检测回调地址：优先用环境变量，其次用请求来源
+  const origin = req.headers.origin || req.headers.referer?.replace(/\/$/, '') || '';
+  const redirectUri = REDIRECT_URI !== 'http://localhost:5173/callback'
+    ? REDIRECT_URI
+    : origin
+      ? `${origin}/callback`
+      : REDIRECT_URI;
+
   const state = crypto.randomBytes(16).toString('hex');
   const url = new URL('https://discord.com/api/oauth2/authorize');
   url.searchParams.set('client_id', CLIENT_ID);
-  url.searchParams.set('redirect_uri', REDIRECT_URI);
+  url.searchParams.set('redirect_uri', redirectUri);
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('scope', 'identify guilds');
   url.searchParams.set('state', state);
-  res.json({ url: url.toString(), state });
+  res.json({ url: url.toString(), state, redirectUri });
 });
 
 authRouter.get('/discord/callback', async (req: Request, res: Response) => {
@@ -55,6 +64,14 @@ authRouter.get('/discord/callback', async (req: Request, res: Response) => {
     return;
   }
 
+  // 自动检测回调地址，与 /discord 端点保持一致
+  const origin = req.headers.origin || req.headers.referer?.replace(/\/$/, '') || '';
+  const redirectUri = REDIRECT_URI !== 'http://localhost:5173/callback'
+    ? REDIRECT_URI
+    : origin
+      ? `${origin}/callback`
+      : REDIRECT_URI;
+
   try {
     const tokenResp = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
@@ -64,7 +81,7 @@ authRouter.get('/discord/callback', async (req: Request, res: Response) => {
         client_secret: CLIENT_SECRET,
         grant_type: 'authorization_code',
         code,
-        redirect_uri: REDIRECT_URI,
+        redirect_uri: redirectUri,
       }),
     });
 

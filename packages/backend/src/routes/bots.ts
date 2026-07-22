@@ -32,12 +32,6 @@ botsRouter.post('/', async (req: Request, res: Response) => {
     return;
   }
 
-  // 先检查加密密钥是否配置，避免后续加密失败
-  if (!process.env.ENCRYPTION_KEY) {
-    res.status(500).json({ error: '服务器未配置加密密钥 (ENCRYPTION_KEY)，请在环境变量中设置' });
-    return;
-  }
-
   try {
     // 验证 Token 有效性
     const { Client, GatewayIntentBits } = await import('discord.js');
