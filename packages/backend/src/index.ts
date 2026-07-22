@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { initializeDatabase, getDatabase } from './db/database.js';
+import { getDataDir } from './utils/dataDir.js';
 import { botsRouter } from './routes/bots.js';
 import { commandsRouter } from './routes/commands.js';
 import { eventsRouter } from './routes/events.js';
@@ -71,6 +72,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`数据目录: ${getDataDir()}`);
   try {
     const count = botManager.restoreAll();
     console.log(`Restored ${count} bots`);
