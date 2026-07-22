@@ -82,7 +82,31 @@ const PERM_CATEGORIES = [
   },
 ];
 
-export function SettingsTab({ botId }: SettingsTabProps) {
+const MOD_PRESET = 1n << 10n  // VIEW_CHANNEL
+  | 1n << 11n  // SEND_MESSAGES
+  | 1n << 38n  // SEND_MESSAGES_IN_THREADS
+  | 1n << 35n  // CREATE_PUBLIC_THREADS
+  | 1n << 36n  // CREATE_PRIVATE_THREADS
+  | 1n << 14n  // EMBED_LINKS
+  | 1n << 15n  // ATTACH_FILES
+  | 1n << 6n   // ADD_REACTIONS
+  | 1n << 18n  // USE_EXTERNAL_EMOJIS
+  | 1n << 37n  // USE_EXTERNAL_STICKERS
+  | 1n << 16n  // READ_MESSAGE_HISTORY
+  | 1n << 17n  // MENTION_EVERYONE
+  | 1n << 31n  // USE_APPLICATION_COMMANDS
+  | 1n << 1n   // KICK_MEMBERS
+  | 1n << 2n   // BAN_MEMBERS
+  | 1n << 40n  // MODERATE_MEMBERS
+  | 1n << 13n  // MANAGE_MESSAGES
+  | 1n << 4n   // MANAGE_CHANNELS
+  | 1n << 28n  // MANAGE_ROLES
+  | 1n << 27n  // MANAGE_NICKNAMES
+  | 1n << 7n   // VIEW_AUDIT_LOG
+  | 1n << 34n  // MANAGE_THREADS
+  | 1n << 0n   // CREATE_INSTANT_INVITE
+  | 1n << 47n  // SEND_POLLS
+  | 1n << 29n; // MANAGE_WEBHOOKS
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState('');
@@ -144,7 +168,7 @@ export function SettingsTab({ botId }: SettingsTabProps) {
 
   const getInviteUrl = () => {
     if (!info?.clientId) return '';
-    return `https://discord.com/oauth2/authorize?client_id=${info.clientId}&permissions=${Number(perms)}&scope=bot%20applications.commands`;
+    return `https://discord.com/oauth2/authorize?client_id=${info.clientId}&permissions=${perms.toString()}&scope=bot%20applications.commands`;
   };
 
   const handleUpdateProfile = async () => {
@@ -277,6 +301,7 @@ export function SettingsTab({ botId }: SettingsTabProps) {
           <div className="flex items-center gap-3">
             {saveStatus !== 'idle' && <span className={`text-xs ${statusColor}`}>{statusText}</span>}
             <button onClick={() => { setPerms(1n << 3n); savePermissions(1n << 3n); }} className="px-3 py-1 text-xs bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded transition-colors">全选管理员</button>
+            <button onClick={() => { setPerms(MOD_PRESET); savePermissions(MOD_PRESET); }} className="px-3 py-1 text-xs bg-green-600/20 hover:bg-green-600/30 text-green-400 rounded transition-colors">审核推荐</button>
             <button onClick={() => { setPerms(0n); savePermissions(0n); }} className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded transition-colors">清空</button>
           </div>
         </div>
