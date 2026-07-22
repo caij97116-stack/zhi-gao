@@ -32,12 +32,24 @@ botsRouter.post('/', async (req: Request, res: Response) => {
     return;
   }
 
+  // 先检查加密密钥是否配置，避免后续加密失败
+  if (!process.env.ENCRYPTION_KEY) {
+    res.status(500).json({ error: '服务器未配置加密密钥 (ENCRYPTION_KEY)，请在环境变量中设置' });
+    return;
+  }
+
   try {
+    // 验证 Token 有效性
     const { Client, GatewayIntentBits } = await import('discord.js');
     const testClient = new Client({ intents: [GatewayIntentBits.Guilds] });
     await testClient.login(token);
     const clientId = testClient.user?.id;
     await testClient.destroy();
+
+    if (!clientId) {
+      res.status(400).json({ error: 'Token 验证失败：无法获取 Bot 用户信息，请确认 Token 正确' });
+      return;
+    }
 
     const db = getDatabase();
     const botId = uuidv4();
@@ -46,7 +58,7 @@ botsRouter.post('/', async (req: Request, res: Response) => {
 
     db.prepare(
       'INSERT INTO bots (id, name, avatar, token, status, client_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(botId, name, avatar || null, encryptedToken, 'offline', clientId || null, now, now);
+    ).run(botId, name, avatar || null, encryptedToken, 'offline', clientId, now, now);
 
     const tpl = templateId ? templates.find((t) => t.id === templateId) : null;
     if (tpl) {
@@ -80,18 +92,23 @@ botsRouter.post('/', async (req: Request, res: Response) => {
       name,
       avatar: avatar || null,
       status: 'offline',
-      clientId: clientId || null,
+      clientId: clientId,
       templateApplied: !!tpl,
       createdAt: now,
       updatedAt: now,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    if (message.includes('Used token')) {
-      res.status(400).json({ error: 'Token 无效，请检查 Discord Developer Portal' });
+    // 匹配各种 Token 无效的错误信息
+    if (message.includes('Used token') || message.includes('invalid token') || message.includes('Token') || message.includes('token')) {
+      res.status(400).json({ error: 'Token 无效，请检查 Discord Developer Portal 中 Bot 的 Token 是否正确' });
       return;
     }
-    res.status(500).json({ error: message });
+    if (message.includes('ENCRYPTION_KEY')) {
+      res.status(500).json({ error: '服务器未配置加密密钥 (ENCRYPTION_KEY)，请在环境变量中设置' });
+      return;
+    }
+    res.status(500).json({ error: `创建 Bot 失败: ${message}` });
   }
 });
 

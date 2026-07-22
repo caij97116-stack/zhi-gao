@@ -6,9 +6,10 @@ interface BotFormProps {
   onCancel: () => void;
   initial?: { name: string; token?: string; avatar?: string };
   templateName?: string;
+  loading?: boolean;
 }
 
-export function BotForm({ onSubmit, onCancel, initial, templateName }: BotFormProps) {
+export function BotForm({ onSubmit, onCancel, initial, templateName, loading }: BotFormProps) {
   const { guilds, isAuthenticated } = useAuth();
   const [name, setName] = useState(initial?.name || '');
   const [token, setToken] = useState('');
@@ -119,9 +120,10 @@ export function BotForm({ onSubmit, onCancel, initial, templateName }: BotFormPr
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-medium transition-colors"
+          disabled={loading}
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
         >
-          {initial ? '保存' : '创建'}
+          {loading ? '创建中...' : initial ? '保存' : '创建'}
         </button>
       </div>
     </form>

@@ -21,6 +21,8 @@ export function Home() {
   const [loading, setLoading] = useState(true);
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [createLoading, setCreateLoading] = useState(false);
   const navigate = useNavigate();
 
   const loadBots = async () => {
@@ -59,10 +61,20 @@ export function Home() {
   };
 
   const handleCreate = async (data: { name: string; token: string; avatar?: string; guildId?: string }) => {
-    await botsApi.create({ ...data, templateId: selectedTemplate || undefined });
-    setShowForm(false);
-    setSelectedTemplate(null);
-    loadBots();
+    setCreateError('');
+    setCreateLoading(true);
+    try {
+      await botsApi.create({ ...data, templateId: selectedTemplate || undefined });
+      setShowForm(false);
+      setSelectedTemplate(null);
+      loadBots();
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      const msg = axiosErr?.response?.data?.error || '创建失败，请检查网络连接';
+      setCreateError(msg);
+    } finally {
+      setCreateLoading(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -186,10 +198,16 @@ export function Home() {
                   </svg>
                   返回模板选择
                 </button>
+                {createError && (
+                  <div className="bg-red-900/30 border border-red-700/40 rounded-lg p-3 mb-4 text-sm text-red-400">
+                    {createError}
+                  </div>
+                )}
                 <BotForm
                   onSubmit={handleCreate}
                   onCancel={() => { setShowForm(false); setSelectedTemplate(null); }}
                   templateName={selectedTemplate === 'empty' ? undefined : templates.find(t => t.id === selectedTemplate)?.name}
+                  loading={createLoading}
                 />
               </>
             )}
