@@ -3,7 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { initializeDatabase } from './db/database.js';
+import { initializeDatabase, getDatabase } from './db/database.js';
 import { botsRouter } from './routes/bots.js';
 import { commandsRouter } from './routes/commands.js';
 import { eventsRouter } from './routes/events.js';
@@ -31,7 +31,19 @@ initializeDatabase();
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok' });
+  try {
+    const db = getDatabase();
+    db.prepare('SELECT 1').get();
+    const encryptionKeySet = !!process.env.ENCRYPTION_KEY;
+    res.json({
+      status: 'ok',
+      database: 'connected',
+      encryptionKey: encryptionKeySet ? 'set' : 'not set',
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ status: 'error', error: message });
+  }
 });
 
 app.use('/api/auth', authRouter);
@@ -49,12 +61,28 @@ app.get('*', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
+// 全局错误处理中间件
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error('[ERROR]', err.message, err.stack);
+  res.status(500).json({
+    error: err.message || 'Internal Server Error',
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  const count = botManager.restoreAll();
-  console.log(`Restored ${count} bots`);
-  cronScheduler.startAll();
-  console.log('Cron scheduler started');
+  try {
+    const count = botManager.restoreAll();
+    console.log(`Restored ${count} bots`);
+  } catch (err) {
+    console.error('Failed to restore bots:', err);
+  }
+  try {
+    cronScheduler.startAll();
+    console.log('Cron scheduler started');
+  } catch (err) {
+    console.error('Failed to start cron scheduler:', err);
+  }
 });
 
 process.on('SIGTERM', () => {

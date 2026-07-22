@@ -96,39 +96,44 @@ botsRouter.post('/', async (req: Request, res: Response) => {
 });
 
 botsRouter.get('/:id', (req: Request, res: Response) => {
-  const db = getDatabase();
-  const bot = db.prepare('SELECT * FROM bots WHERE id = ?').get(req.params.id) as BotRow | undefined;
+  try {
+    const db = getDatabase();
+    const bot = db.prepare('SELECT * FROM bots WHERE id = ?').get(req.params.id) as BotRow | undefined;
 
-  if (!bot) {
-    res.status(404).json({ error: 'Bot not found' });
-    return;
+    if (!bot) {
+      res.status(404).json({ error: 'Bot not found' });
+      return;
+    }
+
+    const commands = db.prepare('SELECT * FROM commands WHERE bot_id = ?').all(req.params.id) as CommandRow[];
+    const events = db.prepare('SELECT * FROM events WHERE bot_id = ?').all(req.params.id) as EventRow[];
+
+    res.json({
+      id: bot.id,
+      name: bot.name,
+      avatar: bot.avatar,
+      status: bot.status,
+      clientId: bot.client_id,
+      guildId: bot.guild_id,
+      commands: commands.map((c) => ({
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        options: JSON.parse(c.options_json),
+        reply: JSON.parse(c.reply_json),
+      })) as Command[],
+      events: events.map((e) => ({
+        type: e.type,
+        enabled: Boolean(e.enabled),
+        config: JSON.parse(e.config_json),
+      })) as EventConfig[],
+      createdAt: bot.created_at,
+      updatedAt: bot.updated_at,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ error: `读取 Bot 数据失败: ${message}` });
   }
-
-  const commands = db.prepare('SELECT * FROM commands WHERE bot_id = ?').all(req.params.id) as CommandRow[];
-  const events = db.prepare('SELECT * FROM events WHERE bot_id = ?').all(req.params.id) as EventRow[];
-
-  res.json({
-    id: bot.id,
-    name: bot.name,
-    avatar: bot.avatar,
-    status: bot.status,
-    clientId: bot.client_id,
-    guildId: bot.guild_id,
-    commands: commands.map((c) => ({
-      id: c.id,
-      name: c.name,
-      description: c.description,
-      options: JSON.parse(c.options_json),
-      reply: JSON.parse(c.reply_json),
-    })) as Command[],
-    events: events.map((e) => ({
-      type: e.type,
-      enabled: Boolean(e.enabled),
-      config: JSON.parse(e.config_json),
-    })) as EventConfig[],
-    createdAt: bot.created_at,
-    updatedAt: bot.updated_at,
-  });
 });
 
 botsRouter.put('/:id', (req: Request, res: Response) => {
