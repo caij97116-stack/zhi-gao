@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
@@ -10,7 +10,7 @@ import { Callback } from './pages/Callback';
 function App() {
   return (
     <AuthProvider>
-      <HashRouter>
+      <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
@@ -20,7 +20,7 @@ function App() {
           </Route>
           <Route path="/callback" element={<Callback />} />
         </Routes>
-      </HashRouter>
+      </BrowserRouter>
     </AuthProvider>
   );
 }

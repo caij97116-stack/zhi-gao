@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { initializeDatabase } from './db/database.js';
 import { botsRouter } from './routes/bots.js';
@@ -19,11 +21,14 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.use(cors());
 app.use(express.json());
 
 initializeDatabase();
+
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
@@ -39,6 +44,10 @@ app.use('/api/bots', botControlRouter);
 app.use('/api/bots', scheduleRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/server', serverRouter);
+
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
