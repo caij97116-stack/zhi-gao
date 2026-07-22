@@ -1,0 +1,145 @@
+# 需求实施计划
+
+- [ ] 1. 设置项目结构
+  - [ ] 1.1 初始化 monorepo 根目录，创建 `/workspace/` 下的 package.json，配置 workspaces
+    - 创建 `package.json`，使用 npm workspaces 管理 `packages/backend` 和 `packages/frontend`
+    - 添加根目录 `.gitignore`、`README.md`
+  - [ ] 1.2 创建后端项目骨架 (packages/backend)
+    - 初始化 `packages/backend/package.json`，依赖：express、discord.js、better-sqlite3、uuid、cors、dotenv、crypto（Node 内置）
+    - 安装 devDependencies：typescript、@types/express、@types/better-sqlite3、@types/uuid、@types/cors、tsx、@types/node
+    - 创建 `tsconfig.json` 配置
+    - 创建目录结构：`src/routes/`、`src/models/`、`src/services/`、`src/db/`、`src/middleware/`
+  - [ ] 1.3 创建前端项目骨架 (packages/frontend)
+    - 使用 Vite 创建 React + TypeScript 项目
+    - 安装 TailwindCSS v4 及相关插件
+    - 安装 react-router-dom、axios
+    - 创建目录结构：`src/pages/`、`src/components/`、`src/api/`、`src/hooks/`
+  - [ ] 1.4 配置 Vite 开发代理和 allowedHosts
+    - 在 `vite.config.ts` 中配置 `/api` 代理指向 `http://localhost:3001`
+    - 添加 `allowedHosts: ['.monkeycode-ai.online']`
+
+- [ ] 2. 实现后端数据模型和数据库
+  - [ ] 2.1 实现数据模型类型定义（R1, R2, R3, R4）
+    - 创建 `packages/backend/src/models/types.ts`，定义 Bot、Command、CommandOption、ReplyConfig、EmbedConfig、EventConfig 等 TypeScript 接口
+    - 参考 design.md Data Models 章节
+  - [ ] 2.2 实现 SQLite 数据库初始化和 Schema（R1, R6）
+    - 创建 `packages/backend/src/db/database.ts`
+    - 使用 better-sqlite3 创建 bots、commands、events 三张表
+    - 实现 `initializeDatabase()` 函数，自动建表
+  - [ ] 2.3 实现 Bot Token AES 加密工具（R1 安全要求）
+    - 创建 `packages/backend/src/services/crypto.ts`
+    - 实现 `encryptToken()` 和 `decryptToken()` 函数，使用 AES-256-CBC
+    - 加密密钥从环境变量 `ENCRYPTION_KEY` 读取
+
+- [ ] 3. 实现后端 API 路由
+  - [ ] 3.1 创建 Express 应用入口（R1-R7 所有 API）
+    - 创建 `packages/backend/src/index.ts`，初始化 Express，挂载路由、CORS、JSON 解析
+    - 监听端口 3001
+  - [ ] 3.2 实现 Bot CRUD API（R1）
+    - 创建 `packages/backend/src/routes/bots.ts`
+    - 实现 GET /api/bots（列表）、POST /api/bots（创建+Token验证）、GET /api/bots/:id（详情）、PUT /api/bots/:id（更新）、DELETE /api/bots/:id（删除）
+    - 创建 Bot 时调用 Discord API 验证 Token 有效性
+    - Token 写入数据库前加密，读取时不解密返回
+  - [ ] 3.3 实现命令 CRUD API（R2）
+    - 创建 `packages/backend/src/routes/commands.ts`
+    - 实现 GET/POST/PUT/DELETE /api/bots/:id/commands
+    - 命令数据以 JSON 字符串存储在 commands 表中
+  - [ ] 3.4 实现事件配置 API（R4）
+    - 创建 `packages/backend/src/routes/events.ts`
+    - 实现 GET/PUT /api/bots/:id/events
+    - 支持 memberJoin、messageCreate、memberLeave 三类事件配置
+  - [ ] 3.5 实现项目搜索 API（R5）
+    - 创建 `packages/backend/src/routes/search.ts`
+    - 实现 GET /api/search?q=&source=&lang=
+    - 并行请求 GitHub Search API、npm Registry Search API
+    - MCP 使用预置项目列表
+    - 搜索结果合并统一格式返回
+    - 实现 GitHub API 限频降级处理
+  - [ ] 3.6 实现服务器信息 API（R7）
+    - 创建 `packages/backend/src/routes/server.ts`
+    - 实现 GET /api/server/:id/info
+    - 调用 Discord REST API 获取服务器名称、成员数、频道数、Bot 权限
+
+- [ ] 4. 实现 BotManager 核心模块
+  - [ ] 4.1 实现 BotManager 核心逻辑（R6）
+    - 创建 `packages/backend/src/services/botManager.ts`
+    - 维护 `Map<string, Client>` 管理多个 discord.js Client 实例
+    - 实现 `startBot(id, token)` - 创建 Client，监听 ready/error 事件，更新数据库状态
+    - 实现 `stopBot(id)` - 销毁 Client，更新数据库状态
+    - 实现 `restartBot(id)` - stop 后 start
+    - 实现 `getStatus(id)` - 返回当前 Bot 状态
+  - [ ] 4.2 实现命令动态注册（R2）
+    - 在 BotManager 中，Bot 启动时根据数据库中的命令配置，调用 discord.js REST API 注册斜杠命令
+    - 支持 STRING/INTEGER/BOOLEAN/USER/CHANNEL/ROLE 六种参数类型映射
+  - [ ] 4.3 实现事件处理器注册（R4）
+    - 在 BotManager 中，Bot 启动时根据事件配置注册对应的事件监听器
+    - memberJoin: 发送欢迎消息到指定频道
+    - messageCreate: 关键词匹配回复
+    - memberLeave: 发送告别消息
+  - [ ] 4.4 实现 Bot 启动/停止/重启 API 路由（R6）
+    - 创建 `packages/backend/src/routes/botControl.ts`
+    - 实现 POST /api/bots/:id/start、POST /api/bots/:id/stop、POST /api/bots/:id/restart
+    - 调用 BotManager 对应方法
+  - [ ] 4.5 实现后端启动时自动恢复 Bot（R6, Correctness 3）
+    - 在 `index.ts` 启动流程中，读取数据库中所有 status=online 的 Bot
+    - 依次调用 BotManager.startBot() 恢复运行
+
+- [ ] 5. 检查点 - 后端核心功能可运行
+  - 确认后端 Express 服务可正常启动
+  - 确认 SQLite 数据库自动初始化
+  - 确认 BotManager 可正常创建和销毁 discord.js Client
+
+- [ ] 6. 实现前端页面和组件
+  - [ ] 6.1 创建前端布局和路由（所有前端页面）
+    - 编辑 `packages/frontend/src/App.tsx`，配置 React Router 路由表
+    - 创建 `packages/frontend/src/components/Layout.tsx`，侧边栏导航 + 主内容区
+    - 配置 Tailwind 暗色主题样式
+  - [ ] 6.2 实现前端 API 服务层
+    - 创建 `packages/frontend/src/api/index.ts`
+    - 封装 axios 实例，基地址 `/api`
+    - 导出 botsApi、commandsApi、eventsApi、searchApi、serverApi 方法
+  - [ ] 6.3 实现 Bot 列表页（R1）
+    - 创建 `packages/frontend/src/pages/Home.tsx`
+    - 展示 BotCard 组件列表
+    - 创建 `packages/frontend/src/components/BotCard.tsx`，显示名称、头像、状态指示灯、操作按钮
+    - 创建 Bot 表单组件 `packages/frontend/src/components/BotForm.tsx`（名称+Token+头像），用于创建 Bot
+  - [ ] 6.4 实现 Bot 编辑页（R2, R3）
+    - 创建 `packages/frontend/src/pages/BotEditor.tsx`
+    - Tab 切换：命令编辑 / Embed 编辑 / 事件配置
+    - 顶部显示 Bot 状态和启动/停止/重启按钮
+  - [ ] 6.5 实现命令编辑器组件（R2）
+    - 创建 `packages/frontend/src/components/CommandEditor.tsx`
+    - 命令列表 + 添加新命令按钮
+    - 命令编辑表单：名称、描述、参数管理（添加/删除参数，选择类型）
+    - 回复内容编辑：纯文本或 Embed 切换
+  - [ ] 6.6 实现 Embed 构建器组件（R3）
+    - 创建 `packages/frontend/src/components/EmbedBuilder.tsx`
+    - 表单字段：标题、描述、颜色选择器、缩略图URL、大图URL、页脚
+    - Fields 管理：添加/删除 field（名称+值+inline开关）
+    - 实时预览面板，模拟 Discord Embed 渲染效果
+  - [ ] 6.7 实现事件配置组件（R4）
+    - 创建 `packages/frontend/src/components/EventConfig.tsx`
+    - 事件类型选项卡：memberJoin / messageCreate / memberLeave
+    - memberJoin 配置：频道选择 + 欢迎消息模板
+    - messageCreate 配置：关键词规则列表（匹配模式+回复内容）
+  - [ ] 6.8 实现项目搜索页（R5）
+    - 创建 `packages/frontend/src/pages/Search.tsx`
+    - 创建 `packages/frontend/src/components/SearchBar.tsx`，支持关键字输入 + 数据源筛选
+    - 创建 `packages/frontend/src/components/SearchResult.tsx`，展示项目卡片（来源标签、名称、描述、Star、语言、链接）
+    - 支持按 source 和 language 筛选
+  - [ ] 6.9 实现社区信息面板页（R7）
+    - 创建 `packages/frontend/src/pages/ServerInfo.tsx`
+    - 调用 `/api/server/:id/info` 获取数据
+    - 展示服务器名称、成员数、频道数、Bot 权限列表
+
+- [ ] 7. 集成与配置
+  - [ ] 7.1 配置前端 Vite 代理和后端 CORS
+    - 确保 Vite proxy 正确转发 `/api` 到后端
+    - 后端 CORS 配置允许前端开发源
+  - [ ] 7.2 创建后端启动脚本和环境变量模板
+    - 创建 `packages/backend/.env.example`，列出 ENCRYPTION_KEY、PORT 等变量
+    - 在 `packages/backend/package.json` 添加 `dev`、`build`、`start` 脚本
+  - [ ] 7.3 配置 GitHub Pages 和 Render 部署
+    - 创建 `packages/frontend/.github/workflows/deploy.yml`，配置 GitHub Pages 自动部署
+    - 创建 Render 部署配置（render.yaml 或手动配置说明）
+    - 前端 base URL 配置为 GitHub Pages 路径

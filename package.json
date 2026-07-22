@@ -1,0 +1,19 @@
+{
+  "name": "discord-bot-workshop",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/backend",
+    "packages/frontend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:backend": "npm run dev -w packages/backend",
+    "dev:frontend": "npm run dev -w packages/frontend",
+    "build": "npm run build --workspaces --if-present",
+    "start": "npm run start -w packages/backend"
+  },
+  "dependencies": {
+    "node-cron": "^4.6.0"
+  }
+}
