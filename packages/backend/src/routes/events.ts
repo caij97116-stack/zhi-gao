@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { getDatabase } from '../db/database.js';
-import type { EventRow } from '../models/types.js';
+import { scheduleBackup } from '../services/githubStorage.js';
+import type { EventRow, EventConfig } from '../models/types.js';
 
 export const eventsRouter = Router({ mergeParams: true });
 
@@ -67,6 +68,7 @@ eventsRouter.put('/:botId/events', (req: Request, res: Response) => {
     db.prepare('UPDATE bots SET updated_at = ? WHERE id = ?').run(new Date().toISOString(), req.params.botId);
 
     res.json({ success: true });
+    scheduleBackup();
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     res.status(500).json({ error: `保存事件配置失败: ${message}` });

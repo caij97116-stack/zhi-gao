@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDatabase } from '../db/database.js';
+import { scheduleBackup } from '../services/githubStorage.js';
 import type { CommandRow } from '../models/types.js';
 
 export const commandsRouter = Router({ mergeParams: true });
@@ -57,6 +58,7 @@ commandsRouter.post('/:botId/commands', (req: Request, res: Response) => {
   db.prepare('UPDATE bots SET updated_at = ? WHERE id = ?').run(new Date().toISOString(), req.params.botId);
 
   res.status(201).json({ id, name, description: description || '', options: options || [], reply: reply || { type: 'text', content: '' } });
+  scheduleBackup();
 });
 
 commandsRouter.put('/:botId/commands/:cmdId', (req: Request, res: Response) => {
@@ -90,6 +92,7 @@ commandsRouter.put('/:botId/commands/:cmdId', (req: Request, res: Response) => {
       options: options || JSON.parse(cmd.options_json),
       reply: reply || JSON.parse(cmd.reply_json),
     });
+    scheduleBackup();
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     res.status(500).json({ error: `更新命令失败: ${message}` });
@@ -107,6 +110,6 @@ commandsRouter.delete('/:botId/commands/:cmdId', (req: Request, res: Response) =
 
   db.prepare('DELETE FROM commands WHERE id = ?').run(req.params.cmdId);
   db.prepare('UPDATE bots SET updated_at = ? WHERE id = ?').run(new Date().toISOString(), req.params.botId);
-
   res.json({ success: true });
+  scheduleBackup();
 });

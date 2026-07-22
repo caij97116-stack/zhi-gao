@@ -17,6 +17,7 @@ import { logRouter } from './routes/logs.js';
 import { scheduleRouter } from './routes/schedules.js';
 import { botManager } from './services/botManager.js';
 import { cronScheduler } from './services/cronScheduler.js';
+import { restoreFromGitHub, backupNow } from './services/githubStorage.js';
 
 dotenv.config();
 
@@ -26,6 +27,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.use(cors());
 app.use(express.json());
+
+// 从 GitHub 恢复数据库（在初始化数据库之前）
+await restoreFromGitHub();
 
 initializeDatabase();
 
@@ -87,12 +91,16 @@ app.listen(PORT, () => {
   }
 });
 
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
+  console.log('[Shutdown] 正在备份数据到 GitHub...');
+  await backupNow();
   botManager.stopAll();
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
+  console.log('[Shutdown] 正在备份数据到 GitHub...');
+  await backupNow();
   botManager.stopAll();
   process.exit(0);
 });
