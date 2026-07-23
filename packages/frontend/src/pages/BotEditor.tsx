@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { botsApi, commandsApi, eventsApi, type BotDetail, type Command, type EventConfig } from '../api';
+import { botsApi, commandsApi, eventsApi, botControlApi, type BotDetail, type Command, type EventConfig } from '../api';
 import { CommandEditor } from '../components/CommandEditor';
 import { EmbedBuilder } from '../components/EmbedBuilder';
 import { EventConfigEditor } from '../components/EventConfigEditor';
@@ -10,12 +10,22 @@ import { SettingsTab } from '../components/SettingsTab';
 
 type Tab = 'commands' | 'events' | 'schedules' | 'settings';
 
+interface GuildInfo {
+  id: string;
+  name: string;
+  icon: string | null;
+  memberCount: number;
+}
+
 export function BotEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [bot, setBot] = useState<BotDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('commands');
+  const [guilds, setGuilds] = useState<GuildInfo[]>([]);
+  const [guildsLoading, setGuildsLoading] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   const loadBot = async () => {
     if (!id) return;
@@ -29,9 +39,40 @@ export function BotEditor() {
     }
   };
 
+  const loadGuilds = async () => {
+    if (!id) return;
+    setGuildsLoading(true);
+    try {
+      const data = await botControlApi.getGuilds(id);
+      setGuilds(data.guilds);
+    } catch {
+      // ignore
+    } finally {
+      setGuildsLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadBot();
   }, [id]);
+
+  useEffect(() => {
+    if (bot && bot.status === 'online') {
+      loadGuilds();
+    }
+  }, [bot?.status]);
+
+  const getInviteUrl = () => {
+    if (!bot?.clientId) return '';
+    const base = `https://discord.com/oauth2/authorize?client_id=${bot.clientId}&permissions=8&scope=bot%20applications.commands`;
+    return bot.guildId ? `${base}&guild_id=${bot.guildId}` : base;
+  };
+
+  const handleCopyInvite = () => {
+    navigator.clipboard.writeText(getInviteUrl());
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  };
 
   const handleCommandCreate = async (cmd: Partial<Command>) => {
     if (!id) return;
@@ -110,31 +151,61 @@ export function BotEditor() {
 
       {bot.clientId && (
         <div className="bg-gray-800 rounded-lg p-4 mb-4 border border-gray-700">
-          <p className="text-sm text-gray-300 mb-2">
-            将 Bot 加入你的服务器：
-          </p>
-          {bot.guildId ? (
+          <p className="text-sm font-medium text-gray-200 mb-3">将 Bot 加入你的服务器</p>
+
+          <div className="flex flex-wrap gap-2 mb-3">
             <a
-              href={`https://discord.com/oauth2/authorize?client_id=${bot.clientId}&permissions=8&scope=bot%20applications.commands&guild_id=${bot.guildId}`}
+              href={getInviteUrl()}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-block px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-medium transition-colors mb-2"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-medium transition-colors"
             >
-              点击邀请 Bot 到服务器
+              打开邀请链接
             </a>
-          ) : (
-            <a
-              href={`https://discord.com/oauth2/authorize?client_id=${bot.clientId}&permissions=8&scope=bot%20applications.commands`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-medium transition-colors mb-2"
+            <button
+              onClick={handleCopyInvite}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors"
             >
-              点击邀请 Bot 到服务器
-            </a>
+              {inviteCopied ? '已复制' : '复制邀请链接'}
+            </button>
+            <button
+              onClick={loadGuilds}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors"
+            >
+              刷新服务器列表
+            </button>
+          </div>
+
+          <details className="text-xs text-gray-400">
+            <summary className="cursor-pointer hover:text-gray-300">邀请链接详情</summary>
+            <code className="block mt-2 break-all bg-gray-900 px-2 py-1 rounded text-indigo-400">{getInviteUrl()}</code>
+            <p className="mt-1">Client ID: {bot.clientId}</p>
+          </details>
+
+          {guilds.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-700">
+              <p className="text-xs text-gray-400 mb-2">Bot 当前所在的服务器：</p>
+              {guilds.map((g) => (
+                <div key={g.id} className="flex items-center gap-2 text-sm text-gray-300 py-1">
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  {g.name} <span className="text-xs text-gray-500">({g.memberCount} 成员)</span>
+                </div>
+              ))}
+            </div>
           )}
-          <p className="text-xs text-gray-500">
-            点击后在新页面中选择目标服务器并授权。如果看不到服务器，说明你需要在那个服务器中有「管理服务器」权限。
-          </p>
+
+          {guildsLoading && <p className="text-xs text-gray-500 mt-2">加载中...</p>}
+
+          {bot.status === 'online' && guilds.length === 0 && !guildsLoading && (
+            <div className="mt-3 pt-3 border-t border-gray-700">
+              <p className="text-xs text-yellow-400">
+                Bot 尚未加入任何服务器。请点击上方按钮打开邀请链接，在 Discord 授权页面选择你的服务器并授权。
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                如果授权页面看不到你的服务器，说明你需要在该服务器中有「管理服务器」权限。
+              </p>
+            </div>
+          )}
         </div>
       )}
 
