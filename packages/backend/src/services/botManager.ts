@@ -34,9 +34,10 @@ class BotManager {
 
     db.prepare('UPDATE bots SET status = ? WHERE id = ?').run('starting', botId);
 
+    let client: Client | undefined;
     try {
       const token = decryptToken(bot.token);
-      const client = new Client({
+      client = new Client({
         intents: [
           GatewayIntentBits.Guilds,
           GatewayIntentBits.GuildMessages,
@@ -55,8 +56,8 @@ class BotManager {
           db.prepare('UPDATE bots SET guild_id = ? WHERE id = ?').run(guildId, botId);
         }
 
-        this.registerCommands(botId, client);
-        this.registerEvents(botId, client);
+        this.registerCommands(botId, client!);
+        this.registerEvents(botId, client!);
       });
 
       client.on(DiscordEvents.Error, (error) => {
@@ -69,6 +70,8 @@ class BotManager {
       this.clients.set(botId, client);
     } catch (err) {
       db.prepare('UPDATE bots SET status = ? WHERE id = ?').run('error', botId);
+      // 清理失败启动的 client，防止内存泄漏
+      if (client) { try { client.destroy(); } catch { /* ignore */ } }
       throw err;
     }
   }
@@ -108,16 +111,21 @@ class BotManager {
     }
   }
 
-  restoreAll(): number {
+  async restoreAll(): Promise<number> {
     const db = getDatabase();
     const bots = db.prepare("SELECT * FROM bots WHERE status = 'online'").all() as BotRow[];
     let count = 0;
 
     for (const bot of bots) {
-      this.startBot(bot.id).then(() => count++).catch((err) => console.error(`Failed to restore bot ${bot.id}:`, err));
+      try {
+        await this.startBot(bot.id);
+        count++;
+      } catch (err) {
+        console.error(`Failed to restore bot ${bot.id}:`, err);
+      }
     }
 
-    return bots.length;
+    return count;
   }
 
   private async registerCommands(botId: string, client: Client): Promise<void> {

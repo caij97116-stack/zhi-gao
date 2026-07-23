@@ -74,11 +74,11 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`数据目录: ${getDataDir()}`);
   try {
-    const count = botManager.restoreAll();
+    const count = await botManager.restoreAll();
     console.log(`Restored ${count} bots`);
   } catch (err) {
     console.error('Failed to restore bots:', err);

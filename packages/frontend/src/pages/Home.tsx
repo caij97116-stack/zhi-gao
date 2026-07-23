@@ -32,8 +32,8 @@ export function Home() {
     try {
       const data = await botsApi.list();
       setBots(data);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('加载 Bot 列表失败:', err);
     } finally {
       setLoading(false);
     }
@@ -43,8 +43,8 @@ export function Home() {
     try {
       const data = await templatesApi.list();
       setTemplates(data);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('加载模板列表失败:', err);
     }
   };
 
