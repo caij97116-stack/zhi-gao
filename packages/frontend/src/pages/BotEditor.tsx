@@ -177,13 +177,21 @@ export function BotEditor() {
               rel="noopener noreferrer"
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-medium transition-colors"
             >
-              打开邀请链接
+              邀请链接 1（含斜杠命令）
+            </a>
+            <a
+              href={`https://discord.com/oauth2/authorize?client_id=${bot.clientId}&permissions=8&scope=bot`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium transition-colors"
+            >
+              邀请链接 2（仅 Bot）
             </a>
             <button
               onClick={handleCopyInvite}
               className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors"
             >
-              {inviteCopied ? '已复制' : '复制邀请链接'}
+              {inviteCopied ? '已复制' : '复制链接 1'}
             </button>
             <button
               onClick={loadGuilds}
@@ -237,11 +245,14 @@ export function BotEditor() {
           {bot.status === 'online' && guilds.length === 0 && !guildsLoading && (
             <div className="mt-3 pt-3 border-t border-gray-700">
               <p className="text-xs text-yellow-400">
-                Bot 尚未加入任何服务器。请点击上方按钮打开邀请链接，在 Discord 授权页面选择你的服务器并授权。
+                Bot 尚未加入任何服务器。请尝试两个邀请链接，如果都不行：
               </p>
-              <p className="text-xs text-gray-500 mt-1">
-                如果授权页面看不到你的服务器，说明你需要在该服务器中有「管理服务器」权限。
-              </p>
+              <ol className="text-xs text-gray-400 mt-1 list-decimal list-inside space-y-1">
+                <li>去 <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer" className="text-indigo-400 underline">Discord Developer Portal</a></li>
+                <li>找到你的应用 → OAuth2 → URL Generator</li>
+                <li>勾选「bot」→ 勾选「Administrator」→ 复制生成的链接</li>
+                <li>对比两个链接的 client_id 是否一致</li>
+              </ol>
             </div>
           )}
         </div>

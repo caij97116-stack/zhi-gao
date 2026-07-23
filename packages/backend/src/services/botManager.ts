@@ -54,10 +54,20 @@ class BotManager {
         if (readyClient.guilds.cache.size > 0) {
           const guildId = readyClient.guilds.cache.first()!.id;
           db.prepare('UPDATE bots SET guild_id = ? WHERE id = ?').run(guildId, botId);
+          console.log(`Bot ${bot.name} 已在 ${readyClient.guilds.cache.size} 个服务器中`);
+        } else {
+          console.log(`Bot ${bot.name} 尚未加入任何服务器`);
         }
 
         this.registerCommands(botId, client!);
         this.registerEvents(botId, client!);
+      });
+
+      // 监听加入新服务器
+      client.on(DiscordEvents.GuildCreate, (guild) => {
+        console.log(`Bot ${bot.name} (${botId}) 加入了服务器: ${guild.name} (${guild.id})`);
+        this.log({ botId, type: 'info', message: `加入了服务器: ${guild.name}`, eventType: 'guildCreate' });
+        db.prepare('UPDATE bots SET guild_id = ?, updated_at = ? WHERE id = ?').run(guild.id, new Date().toISOString(), botId);
       });
 
       client.on(DiscordEvents.Error, (error) => {
