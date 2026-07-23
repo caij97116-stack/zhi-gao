@@ -29,7 +29,14 @@ app.use(cors());
 app.use(express.json());
 
 // 从 GitHub 恢复数据库（在初始化数据库之前）
-await restoreFromGitHub();
+try {
+  const restored = await restoreFromGitHub();
+  if (!restored) {
+    console.log('[Boot] 未从 GitHub 恢复数据，将使用空数据库（首次启动正常）');
+  }
+} catch (err) {
+  console.error('[Boot] 从 GitHub 恢复数据时出错，将继续使用本地数据库:', err instanceof Error ? err.message : err);
+}
 
 initializeDatabase();
 

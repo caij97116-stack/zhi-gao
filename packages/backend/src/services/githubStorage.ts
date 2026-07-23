@@ -6,8 +6,6 @@ const DB_FILE = 'discord-bots.db';
 const KEY_FILE = '.encryption_key';
 const BRANCH = 'data';
 
-let backupTimer: ReturnType<typeof setTimeout> | null = null;
-let pendingBackup = false;
 let branchExistsChecked = false;
 
 function getDbPath(): string {
@@ -272,33 +270,9 @@ export async function restoreFromGitHub(): Promise<boolean> {
 }
 
 /**
- * 将数据库文件备份到 GitHub data 分支。
- * 使用防抖机制，多次调用只会在最后一次调用后延迟执行。
- */
-export function scheduleBackup(): void {
-  if (!getToken()) return;
-
-  pendingBackup = true;
-
-  if (backupTimer) {
-    clearTimeout(backupTimer);
-  }
-
-  backupTimer = setTimeout(async () => {
-    pendingBackup = false;
-    await doBackup();
-  }, 5000); // 5 秒防抖
-}
-
-/**
- * 立即执行备份（不等待防抖）。
+ * 立即执行备份。
  */
 export async function backupNow(): Promise<void> {
-  if (backupTimer) {
-    clearTimeout(backupTimer);
-    backupTimer = null;
-  }
-  pendingBackup = false;
   await doBackup();
 }
 

@@ -258,16 +258,18 @@ botControlRouter.get('/:id/guilds', async (req: Request, res: Response) => {
     // Bot 未运行，临时连接检查
     const token = decryptToken(bot.token);
     const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-    await client.login(token);
-    const guilds = client.guilds.cache.map((g) => ({
-      id: g.id,
-      name: g.name,
-      icon: g.icon,
-      memberCount: g.memberCount,
-    }));
-    await client.destroy();
-
-    res.json({ guilds, online: false });
+    try {
+      await client.login(token);
+      const guilds = client.guilds.cache.map((g) => ({
+        id: g.id,
+        name: g.name,
+        icon: g.icon,
+        memberCount: g.memberCount,
+      }));
+      res.json({ guilds, online: false });
+    } finally {
+      try { client.destroy(); } catch { /* ignore */ }
+    }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     res.status(500).json({ error: message });
