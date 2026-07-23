@@ -183,6 +183,7 @@ export interface AppInfo {
 
 export const botControlApi = {
   info: (botId: string) => api.get<AppInfo>(`/bots/${botId}/info`).then((r) => r.data),
+  diagnose: (botId: string) => api.get<Record<string, unknown>>(`/bots/${botId}/diagnose`).then((r) => r.data),
   updateProfile: (botId: string, data: { username?: string; avatar?: string }) =>
     api.put(`/bots/${botId}/profile`, data).then((r) => r.data),
   updatePresence: (botId: string, data: { status?: string; type?: string; name?: string; url?: string }) =>

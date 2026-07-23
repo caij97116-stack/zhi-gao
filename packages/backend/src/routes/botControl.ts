@@ -7,6 +7,56 @@ import type { BotRow } from '../models/types.js';
 
 export const botControlRouter = Router({ mergeParams: true });
 
+// 诊断端点：验证 bot 的 client_id 是否正确
+botControlRouter.get('/:id/diagnose', async (req: Request, res: Response) => {
+  const db = getDatabase();
+  const bot = db.prepare('SELECT * FROM bots WHERE id = ?').get(req.params.id) as BotRow | undefined;
+  if (!bot) {
+    res.status(404).json({ error: 'Bot not found' });
+    return;
+  }
+
+  const result: Record<string, unknown> = {
+    botId: bot.id,
+    botName: bot.name,
+    storedClientId: bot.client_id,
+    status: bot.status,
+  };
+
+  try {
+    const token = decryptToken(bot.token);
+
+    // 方式1: 通过 Discord.js Client 获取 user ID
+    const testClient = new Client({ intents: [GatewayIntentBits.Guilds] });
+    await testClient.login(token);
+    const jsClientId = testClient.user?.id;
+    const jsUsername = testClient.user?.username;
+    await testClient.destroy();
+
+    // 方式2: 通过 REST API 获取 application ID
+    const rest = new REST({ version: '10' }).setToken(token);
+    const appInfo = await rest.get(Routes.oauth2CurrentApplication()) as Record<string, unknown>;
+
+    result.discordJsClientId = jsClientId || null;
+    result.discordJsUsername = jsUsername || null;
+    result.restApiApplicationId = appInfo.id || null;
+    result.restApiApplicationName = appInfo.name || null;
+    result.match = (jsClientId === appInfo.id && bot.client_id === appInfo.id);
+    result.inviteUrl = `https://discord.com/oauth2/authorize?client_id=${appInfo.id}&permissions=8&scope=bot%20applications.commands`;
+
+    if (!result.match) {
+      result.warning = 'Client ID 不匹配！邀请链接可能使用了错误的 ID。';
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    result.error = message;
+    result.match = false;
+    result.warning = `无法验证 Token: ${message}。请检查 Token 是否有效。`;
+  }
+
+  res.json(result);
+});
+
 botControlRouter.post('/:id/start', async (req: Request, res: Response) => {
   try {
     await botManager.startBot(req.params.id);

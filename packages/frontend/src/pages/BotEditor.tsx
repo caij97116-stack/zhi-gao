@@ -26,6 +26,8 @@ export function BotEditor() {
   const [guilds, setGuilds] = useState<GuildInfo[]>([]);
   const [guildsLoading, setGuildsLoading] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
+  const [diagnoseResult, setDiagnoseResult] = useState<Record<string, unknown> | null>(null);
+  const [diagnoseLoading, setDiagnoseLoading] = useState(false);
 
   const loadBot = async () => {
     if (!id) return;
@@ -72,6 +74,21 @@ export function BotEditor() {
     navigator.clipboard.writeText(getInviteUrl());
     setInviteCopied(true);
     setTimeout(() => setInviteCopied(false), 2000);
+  };
+
+  const runDiagnose = async () => {
+    if (!id) return;
+    setDiagnoseLoading(true);
+    setDiagnoseResult(null);
+    try {
+      const result = await botControlApi.diagnose(id);
+      setDiagnoseResult(result);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown';
+      setDiagnoseResult({ error: message });
+    } finally {
+      setDiagnoseLoading(false);
+    }
   };
 
   const handleCommandCreate = async (cmd: Partial<Command>) => {
@@ -174,6 +191,13 @@ export function BotEditor() {
             >
               刷新服务器列表
             </button>
+            <button
+              onClick={runDiagnose}
+              disabled={diagnoseLoading}
+              className="px-4 py-2 bg-orange-700 hover:bg-orange-600 disabled:opacity-50 rounded-lg text-sm transition-colors"
+            >
+              {diagnoseLoading ? '诊断中...' : '诊断'}
+            </button>
           </div>
 
           <details className="text-xs text-gray-400">
@@ -181,6 +205,20 @@ export function BotEditor() {
             <code className="block mt-2 break-all bg-gray-900 px-2 py-1 rounded text-indigo-400">{getInviteUrl()}</code>
             <p className="mt-1">Client ID: {bot.clientId}</p>
           </details>
+
+          {diagnoseResult && (
+            <div className={`mt-3 p-3 rounded text-xs font-mono ${diagnoseResult.match ? 'bg-green-900/50 border border-green-700' : 'bg-red-900/50 border border-red-700'}`}>
+              <p className={`font-semibold mb-2 ${diagnoseResult.match ? 'text-green-400' : 'text-red-400'}`}>
+                {diagnoseResult.match ? 'Client ID 验证通过' : 'Client ID 异常！'}
+              </p>
+              {diagnoseResult.error && <p className="text-red-400 mb-1">错误: {String(diagnoseResult.error)}</p>}
+              {diagnoseResult.warning && <p className="text-yellow-400 mb-1">{String(diagnoseResult.warning)}</p>}
+              <p className="text-gray-400">存储的 Client ID: {String(diagnoseResult.storedClientId)}</p>
+              <p className="text-gray-400">Discord.js 获取: {String(diagnoseResult.discordJsClientId)} ({String(diagnoseResult.discordJsUsername)})</p>
+              <p className="text-gray-400">REST API 获取: {String(diagnoseResult.restApiApplicationId)} ({String(diagnoseResult.restApiApplicationName)})</p>
+              <p className="text-gray-500 mt-1 break-all">邀请链接: {String(diagnoseResult.inviteUrl)}</p>
+            </div>
+          )}
 
           {guilds.length > 0 && (
             <div className="mt-3 pt-3 border-t border-gray-700">
