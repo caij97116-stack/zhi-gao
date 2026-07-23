@@ -210,8 +210,8 @@ export function BotEditor() {
               <p className={`font-semibold mb-2 ${diagnoseResult.match ? 'text-green-400' : 'text-red-400'}`}>
                 {diagnoseResult.match ? 'Client ID 验证通过' : 'Client ID 异常！'}
               </p>
-              {diagnoseResult.error && <p className="text-red-400 mb-1">错误: {String(diagnoseResult.error)}</p>}
-              {diagnoseResult.warning && <p className="text-yellow-400 mb-1">{String(diagnoseResult.warning)}</p>}
+              {diagnoseResult.error ? <p className="text-red-400 mb-1">错误: {String(diagnoseResult.error)}</p> : null}
+              {diagnoseResult.warning ? <p className="text-yellow-400 mb-1">{String(diagnoseResult.warning)}</p> : null}
               <p className="text-gray-400">存储的 Client ID: {String(diagnoseResult.storedClientId)}</p>
               <p className="text-gray-400">Discord.js 获取: {String(diagnoseResult.discordJsClientId)} ({String(diagnoseResult.discordJsUsername)})</p>
               <p className="text-gray-400">REST API 获取: {String(diagnoseResult.restApiApplicationId)} ({String(diagnoseResult.restApiApplicationName)})</p>

@@ -6,6 +6,7 @@ import { BotEditor } from './pages/BotEditor';
 import { Search } from './pages/Search';
 import { ServerInfo } from './pages/ServerInfo';
 import { Callback } from './pages/Callback';
+import { DiscordApps } from './pages/DiscordApps';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/bot/:id" element={<BotEditor />} />
+            <Route path="/discord-apps" element={<DiscordApps />} />
             <Route path="/search" element={<Search />} />
             <Route path="/server/:botId" element={<ServerInfo />} />
           </Route>

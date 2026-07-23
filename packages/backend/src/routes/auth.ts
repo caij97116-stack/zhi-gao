@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
+import type { Client } from 'discord.js';
 
 export const authRouter = Router();
 
@@ -146,4 +147,51 @@ authRouter.post('/logout', (req: Request, res: Response) => {
     sessions.delete(sessionId);
   }
   res.json({ success: true });
+});
+
+// 通过 Bot Token 获取 Discord 应用信息
+authRouter.post('/fetch-app', async (req: Request, res: Response) => {
+  const { token } = req.body;
+  if (!token) {
+    res.status(400).json({ error: '请提供 Bot Token' });
+    return;
+  }
+
+  let testClient: Client | undefined;
+  try {
+    const { Client, GatewayIntentBits, REST, Routes } = await import('discord.js');
+
+    // 通过 Discord.js 验证并获取基本信息
+    testClient = new Client({ intents: [GatewayIntentBits.Guilds] });
+    await testClient.login(token);
+    const user = testClient.user;
+    const clientId = user?.id;
+    const username = user?.username;
+    const avatar = user?.avatar;
+
+    // 通过 REST API 获取应用详情
+    const rest = new REST({ version: '10' }).setToken(token);
+    const appInfo = await rest.get(Routes.oauth2CurrentApplication()) as Record<string, unknown>;
+
+    const app = {
+      id: appInfo.id || clientId,
+      name: appInfo.name || username,
+      icon: appInfo.icon || avatar,
+      description: appInfo.description || '',
+      botPublic: appInfo.bot_public,
+      botRequireCodeGrant: appInfo.bot_require_code_grant,
+      flags: appInfo.flags,
+      owner: appInfo.owner,
+      inviteUrl: `https://discord.com/oauth2/authorize?client_id=${appInfo.id || clientId}&permissions=8&scope=bot`,
+    };
+
+    res.json({ app });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(400).json({ error: `Token 无效或无法获取应用信息: ${message}` });
+  } finally {
+    if (testClient) {
+      try { testClient.destroy(); } catch { /* ignore */ }
+    }
+  }
 });

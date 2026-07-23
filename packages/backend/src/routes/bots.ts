@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import type { Client } from 'discord.js';
 import { getDatabase } from '../db/database.js';
 import { encryptToken } from '../services/crypto.js';
 import { botManager } from '../services/botManager.js';

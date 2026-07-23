@@ -21,6 +21,9 @@ export function Layout() {
           <NavLink to="/" className={linkClass} end>
             Bot 列表
           </NavLink>
+          <NavLink to="/discord-apps" className={linkClass}>
+            Discord 应用
+          </NavLink>
           <NavLink to="/search" className={linkClass}>
             项目搜索
           </NavLink>
