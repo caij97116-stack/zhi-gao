@@ -39,11 +39,17 @@ app.get('/api/health', (_req, res) => {
   try {
     const db = getDatabase();
     db.prepare('SELECT 1').get();
+    const gitHubTokenSet = !!process.env.GITHUB_TOKEN;
     const encryptionKeySet = !!process.env.ENCRYPTION_KEY;
+    const repo = process.env.GITHUB_REPOSITORY || 'caij97116-stack/zhi-gao';
     res.json({
       status: 'ok',
       database: 'connected',
       encryptionKey: encryptionKeySet ? 'set' : 'not set',
+      githubToken: gitHubTokenSet ? 'set' : 'not set',
+      githubRepo: repo,
+      dataDir: getDataDir(),
+      nodeEnv: process.env.NODE_ENV || 'not set',
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
