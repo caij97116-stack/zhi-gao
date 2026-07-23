@@ -33,13 +33,13 @@ botsRouter.post('/', async (req: Request, res: Response) => {
     return;
   }
 
+  let testClient: Client | undefined;
   try {
     // 验证 Token 有效性
     const { Client, GatewayIntentBits } = await import('discord.js');
-    const testClient = new Client({ intents: [GatewayIntentBits.Guilds] });
+    testClient = new Client({ intents: [GatewayIntentBits.Guilds] });
     await testClient.login(token);
     const clientId = testClient.user?.id;
-    await testClient.destroy();
 
     if (!clientId) {
       res.status(400).json({ error: 'Token 验证失败：无法获取 Bot 用户信息，请确认 Token 正确' });
@@ -103,6 +103,10 @@ botsRouter.post('/', async (req: Request, res: Response) => {
       return;
     }
     res.status(400).json({ error: `Token 无效，请检查 Discord Developer Portal 中 Bot 的 Token 是否正确。错误详情: ${message}` });
+  } finally {
+    if (testClient) {
+      try { testClient.destroy(); } catch { /* ignore cleanup errors */ }
+    }
   }
 });
 

@@ -66,8 +66,7 @@ export function BotEditor() {
 
   const getInviteUrl = () => {
     if (!bot?.clientId) return '';
-    const base = `https://discord.com/oauth2/authorize?client_id=${bot.clientId}&permissions=8&scope=bot%20applications.commands`;
-    return bot.guildId ? `${base}&guild_id=${bot.guildId}` : base;
+    return `https://discord.com/oauth2/authorize?client_id=${bot.clientId}&permissions=8&scope=bot`;
   };
 
   const handleCopyInvite = () => {
@@ -177,21 +176,13 @@ export function BotEditor() {
               rel="noopener noreferrer"
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-medium transition-colors"
             >
-              邀请链接 1（含斜杠命令）
-            </a>
-            <a
-              href={`https://discord.com/oauth2/authorize?client_id=${bot.clientId}&permissions=8&scope=bot`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium transition-colors"
-            >
-              邀请链接 2（仅 Bot）
+              打开邀请链接
             </a>
             <button
               onClick={handleCopyInvite}
               className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm transition-colors"
             >
-              {inviteCopied ? '已复制' : '复制链接 1'}
+              {inviteCopied ? '已复制' : '复制链接'}
             </button>
             <button
               onClick={loadGuilds}
@@ -245,14 +236,11 @@ export function BotEditor() {
           {bot.status === 'online' && guilds.length === 0 && !guildsLoading && (
             <div className="mt-3 pt-3 border-t border-gray-700">
               <p className="text-xs text-yellow-400">
-                Bot 尚未加入任何服务器。请尝试两个邀请链接，如果都不行：
+                Bot 尚未加入任何服务器。请点击上方「打开邀请链接」按钮，在 Discord 授权页面选择你的服务器并授权。
               </p>
-              <ol className="text-xs text-gray-400 mt-1 list-decimal list-inside space-y-1">
-                <li>去 <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer" className="text-indigo-400 underline">Discord Developer Portal</a></li>
-                <li>找到你的应用 → OAuth2 → URL Generator</li>
-                <li>勾选「bot」→ 勾选「Administrator」→ 复制生成的链接</li>
-                <li>对比两个链接的 client_id 是否一致</li>
-              </ol>
+              <p className="text-xs text-gray-500 mt-1">
+                如果看不到服务器，说明你在该服务器中没有「管理服务器」权限，或需要去 Discord Developer Portal 的 Bot 页面检查「PUBLIC BOT」和「REQUIRES OAUTH2 CODE GRANT」设置。
+              </p>
             </div>
           )}
         </div>

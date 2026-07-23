@@ -86,13 +86,15 @@ class BotManager {
     }
   }
 
-  stopBot(botId: string): void {
+  stopBot(botId: string, temporary = false): void {
     const client = this.clients.get(botId);
     if (client) {
       client.destroy();
       this.clients.delete(botId);
       const db = getDatabase();
-      db.prepare('UPDATE bots SET status = ? WHERE id = ?').run('offline', botId);
+      if (!temporary) {
+        db.prepare('UPDATE bots SET status = ? WHERE id = ?').run('offline', botId);
+      }
       this.log({ botId, type: 'stop', message: 'Bot 已停止', eventType: 'stop' });
       console.log(`Bot ${botId} stopped`);
     }
@@ -117,7 +119,7 @@ class BotManager {
 
   stopAll(): void {
     for (const [id] of this.clients) {
-      this.stopBot(id);
+      this.stopBot(id, true);
     }
   }
 
