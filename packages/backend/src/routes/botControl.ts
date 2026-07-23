@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { REST, Routes } from 'discord.js';
+import { REST, Routes, Client, GatewayIntentBits } from 'discord.js';
 import { getDatabase } from '../db/database.js';
 import { decryptToken } from '../services/crypto.js';
 import { botManager } from '../services/botManager.js';
@@ -176,4 +176,46 @@ botControlRouter.put('/:id/permissions', (req: Request, res: Response) => {
     return;
   }
   res.json({ permissions: String(permissions) });
+});
+
+// 检查 Bot 加入了哪些服务器
+botControlRouter.get('/:id/guilds', async (req: Request, res: Response) => {
+  const db = getDatabase();
+  const bot = db.prepare('SELECT * FROM bots WHERE id = ?').get(req.params.id) as BotRow | undefined;
+  if (!bot) {
+    res.status(404).json({ error: 'Bot not found' });
+    return;
+  }
+
+  try {
+    // 优先使用已运行的 client
+    const runningClient = botManager.getClient(req.params.id);
+    if (runningClient && runningClient.isReady()) {
+      const guilds = runningClient.guilds.cache.map((g) => ({
+        id: g.id,
+        name: g.name,
+        icon: g.icon,
+        memberCount: g.memberCount,
+      }));
+      res.json({ guilds, online: true });
+      return;
+    }
+
+    // Bot 未运行，临时连接检查
+    const token = decryptToken(bot.token);
+    const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+    await client.login(token);
+    const guilds = client.guilds.cache.map((g) => ({
+      id: g.id,
+      name: g.name,
+      icon: g.icon,
+      memberCount: g.memberCount,
+    }));
+    await client.destroy();
+
+    res.json({ guilds, online: false });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ error: message });
+  }
 });

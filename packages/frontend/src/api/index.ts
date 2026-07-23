@@ -190,6 +190,8 @@ export const botControlApi = {
   getPermissions: (botId: string) => api.get<{ permissions: string }>(`/bots/${botId}/permissions`).then((r) => r.data),
   savePermissions: (botId: string, permissions: string) =>
     api.put(`/bots/${botId}/permissions`, { permissions }).then((r) => r.data),
+  getGuilds: (botId: string) =>
+    api.get<{ guilds: { id: string; name: string; icon: string | null; memberCount: number }[]; online: boolean }>(`/bots/${botId}/guilds`).then((r) => r.data),
 };
 
 export interface Template {

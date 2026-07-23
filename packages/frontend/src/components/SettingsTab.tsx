@@ -115,7 +115,7 @@ export function SettingsTab({ botId }: SettingsTabProps) {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [profileMsg, setProfileMsg] = useState('');
   const [profileError, setProfileError] = useState('');
-  const [perms, setPerms] = useState<bigint>(0n);
+  const [perms, setPerms] = useState<bigint>(MOD_PRESET);
   const [permsLoaded, setPermsLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [presenceType, setPresenceType] = useState('PLAYING');
@@ -123,6 +123,10 @@ export function SettingsTab({ botId }: SettingsTabProps) {
   const [presenceStatus, setPresenceStatus] = useState('online');
   const [presenceMsg, setPresenceMsg] = useState('');
   const [presenceError, setPresenceError] = useState('');
+  const [guilds, setGuilds] = useState<{ id: string; name: string; icon: string | null; memberCount: number }[]>([]);
+  const [guildsLoading, setGuildsLoading] = useState(false);
+  const [guildsError, setGuildsError] = useState('');
+  const [guildsChecked, setGuildsChecked] = useState(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const loadInfo = async () => {
@@ -140,7 +144,8 @@ export function SettingsTab({ botId }: SettingsTabProps) {
       const saved = await botControlApi.getPermissions(botId);
       setPerms(BigInt(saved.permissions));
     } catch {
-      // no saved permissions
+      // 没有保存过权限，自动保存默认的审核推荐权限
+      try { await botControlApi.savePermissions(botId, MOD_PRESET.toString()); } catch { /* ignore */ }
     }
     setPermsLoaded(true);
     setLoading(false);
@@ -171,6 +176,20 @@ export function SettingsTab({ botId }: SettingsTabProps) {
   const getInviteUrl = () => {
     if (!info?.clientId) return '';
     return `https://discord.com/oauth2/authorize?client_id=${info.clientId}&permissions=${perms.toString()}&scope=bot%20applications.commands`;
+  };
+
+  const checkGuilds = async () => {
+    setGuildsLoading(true);
+    setGuildsError('');
+    try {
+      const data = await botControlApi.getGuilds(botId);
+      setGuilds(data.guilds);
+      setGuildsChecked(true);
+    } catch (err: unknown) {
+      setGuildsError(err instanceof Error ? err.message : '检查失败');
+    } finally {
+      setGuildsLoading(false);
+    }
   };
 
   const handleUpdateProfile = async () => {
@@ -324,6 +343,41 @@ export function SettingsTab({ botId }: SettingsTabProps) {
         </div>
         {info?.clientId && (
           <div className="mt-5 pt-4 border-t border-gray-700">
+            {/* 已加入的服务器 */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-medium text-gray-400">已加入的服务器</h4>
+                <button
+                  onClick={checkGuilds}
+                  disabled={guildsLoading}
+                  className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded transition-colors"
+                >
+                  {guildsLoading ? '检查中...' : guildsChecked ? '刷新' : '检查'}
+                </button>
+              </div>
+              {guildsError && <p className="text-xs text-red-400 mb-2">{guildsError}</p>}
+              {guildsChecked && guilds.length === 0 && !guildsError && (
+                <p className="text-xs text-yellow-400">Bot 尚未加入任何服务器，请使用下方链接邀请。</p>
+              )}
+              {guilds.length > 0 && (
+                <div className="space-y-1">
+                  {guilds.map((g) => (
+                    <div key={g.id} className="flex items-center gap-2 bg-gray-750 rounded px-2 py-1.5">
+                      <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                        {g.icon ? (
+                          <img src={`https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png?size=32`} alt="" className="w-6 h-6 rounded-full" />
+                        ) : (
+                          g.name.charAt(0)
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-200 truncate">{g.name}</span>
+                      <span className="text-xs text-gray-500 ml-auto flex-shrink-0">{g.memberCount} 成员</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-2">
               <code className="flex-1 bg-gray-900 px-3 py-2 rounded text-xs text-indigo-400 break-all font-mono">{getInviteUrl()}</code>
               <button onClick={() => navigator.clipboard.writeText(getInviteUrl())} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-xs transition-colors flex-shrink-0">复制链接</button>
