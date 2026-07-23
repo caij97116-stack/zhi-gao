@@ -113,14 +113,28 @@ export function BotEditor() {
           <p className="text-sm text-gray-300 mb-2">
             将 Bot 加入你的服务器：
           </p>
-          <code className="text-xs text-indigo-400 break-all bg-gray-900 px-3 py-2 rounded block mb-2">
-            https://discord.com/oauth2/authorize?client_id={bot.clientId}&permissions=8&scope=bot%20applications.commands{bot.guildId ? `&guild_id=${bot.guildId}&disable_guild_select=true` : ''}
-          </code>
           {bot.guildId ? (
-            <p className="text-xs text-green-400">已锁定目标服务器，点击链接直接授权即可</p>
+            <a
+              href={`https://discord.com/oauth2/authorize?client_id=${bot.clientId}&permissions=8&scope=bot%20applications.commands&guild_id=${bot.guildId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-medium transition-colors mb-2"
+            >
+              点击邀请 Bot 到服务器
+            </a>
           ) : (
-            <p className="text-xs text-yellow-400">请先在创建时选择目标服务器，或手动在授权页面选择</p>
+            <a
+              href={`https://discord.com/oauth2/authorize?client_id=${bot.clientId}&permissions=8&scope=bot%20applications.commands`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-sm font-medium transition-colors mb-2"
+            >
+              点击邀请 Bot 到服务器
+            </a>
           )}
+          <p className="text-xs text-gray-500">
+            点击后在新页面中选择目标服务器并授权。如果看不到服务器，说明你需要在那个服务器中有「管理服务器」权限。
+          </p>
         </div>
       )}
 
