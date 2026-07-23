@@ -69,8 +69,20 @@ export function Home() {
       setSelectedTemplate(null);
       loadBots();
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: string } } };
-      const msg = axiosErr?.response?.data?.error || '创建失败，请检查网络连接';
+      let msg = '创建失败，请检查网络连接';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const resp = (err as Record<string, unknown>).response as Record<string, unknown> | undefined;
+        const data = resp?.data as Record<string, unknown> | undefined;
+        if (data?.error) {
+          msg = String(data.error);
+        } else if (data?.message) {
+          msg = String(data.message);
+        } else if (resp?.status) {
+          msg = `请求失败 (HTTP ${resp.status})`;
+        }
+      } else if (err instanceof Error) {
+        msg = err.message;
+      }
       setCreateError(msg);
     } finally {
       setCreateLoading(false);

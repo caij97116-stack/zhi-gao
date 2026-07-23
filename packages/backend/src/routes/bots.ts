@@ -97,7 +97,7 @@ botsRouter.post('/', async (req: Request, res: Response) => {
     const message = err instanceof Error ? err.message : 'Unknown error';
     // 匹配各种 Token 无效的错误信息
     if (message.includes('Used token') || message.includes('invalid token') || message.includes('Token') || message.includes('token')) {
-      res.status(400).json({ error: 'Token 无效，请检查 Discord Developer Portal 中 Bot 的 Token 是否正确' });
+      res.status(400).json({ error: `Token 无效，请检查 Discord Developer Portal 中 Bot 的 Token 是否正确。错误详情: ${message}` });
       return;
     }
     if (message.includes('ENCRYPTION_KEY')) {
