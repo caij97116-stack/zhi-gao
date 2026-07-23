@@ -95,16 +95,14 @@ botsRouter.post('/', async (req: Request, res: Response) => {
     scheduleBackup();
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
-    // 匹配各种 Token 无效的错误信息
-    if (message.includes('Used token') || message.includes('invalid token') || message.includes('Token') || message.includes('token')) {
-      res.status(400).json({ error: `Token 无效，请检查 Discord Developer Portal 中 Bot 的 Token 是否正确。错误详情: ${message}` });
-      return;
-    }
+    const code = (err as Record<string, unknown>)?.code;
+    console.error('[创建Bot] 验证 Token 失败:', message, 'code:', code);
+    // 所有 token 验证阶段的错误都是 400（用户输入问题）
     if (message.includes('ENCRYPTION_KEY')) {
       res.status(500).json({ error: '服务器未配置加密密钥 (ENCRYPTION_KEY)，请在环境变量中设置' });
       return;
     }
-    res.status(500).json({ error: `创建 Bot 失败: ${message}` });
+    res.status(400).json({ error: `Token 无效，请检查 Discord Developer Portal 中 Bot 的 Token 是否正确。错误详情: ${message}` });
   }
 });
 

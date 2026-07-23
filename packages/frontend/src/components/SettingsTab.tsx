@@ -107,6 +107,8 @@ const MOD_PRESET = 1n << 10n  // VIEW_CHANNEL
   | 1n << 0n   // CREATE_INSTANT_INVITE
   | 1n << 47n  // SEND_POLLS
   | 1n << 29n; // MANAGE_WEBHOOKS
+
+export function SettingsTab({ botId }: SettingsTabProps) {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState('');
@@ -121,7 +123,7 @@ const MOD_PRESET = 1n << 10n  // VIEW_CHANNEL
   const [presenceStatus, setPresenceStatus] = useState('online');
   const [presenceMsg, setPresenceMsg] = useState('');
   const [presenceError, setPresenceError] = useState('');
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const loadInfo = async () => {
     setLoading(true);

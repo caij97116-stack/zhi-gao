@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { EmbedConfig, EmbedField } from '../api';
 
 export interface EmbedBuilderProps {
