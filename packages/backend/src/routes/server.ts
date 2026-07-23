@@ -35,70 +35,72 @@ serverRouter.get('/:botId/info', async (req: Request, res: Response) => {
     const client = new Client({
       intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildEmojisAndStickers],
     });
-    await client.login(token);
+    try {
+      await client.login(token);
 
-    const result: Record<string, unknown>[] = [];
+      const result: Record<string, unknown>[] = [];
 
-    for (const [, guild] of client.guilds.cache) {
-      await guild.members.fetch();
-      await guild.channels.fetch();
-      await guild.roles.fetch();
-      await guild.emojis.fetch();
-      await guild.stickers.fetch();
+      for (const [, guild] of client.guilds.cache) {
+        await guild.members.fetch();
+        await guild.channels.fetch();
+        await guild.roles.fetch();
+        await guild.emojis.fetch();
+        await guild.stickers.fetch();
 
-      result.push({
-        id: guild.id,
-        name: guild.name,
-        icon: guild.icon,
-        description: guild.description || null,
-        ownerId: guild.ownerId,
-        memberCount: guild.memberCount,
-        approximatePresenceCount: guild.approximatePresenceCount || 0,
-        boostCount: guild.premiumSubscriptionCount || 0,
-        boostTier: guild.premiumTier as number,
-        verificationLevelName: VERIFICATION_NAMES[guild.verificationLevel] || '未知',
-        nsfwLevelName: NSFW_NAMES[guild.nsfwLevel] || '未知',
-        preferredLocale: guild.preferredLocale,
-        vanityUrlCode: guild.vanityURLCode || null,
-        features: (guild.features as string[]).map((f) => FEATURE_LABELS[f] || f),
-        boostTierName: BOOST_TIER_NAMES[guild.premiumTier] || '无',
-        emojiCount: guild.emojis.cache.size,
-        stickerCount: guild.stickers.cache.size,
-        createdAt: guild.createdAt.toISOString(),
-        members: guild.members.cache.map((m) => ({
-          id: m.user.id,
-          username: m.user.username,
-          displayName: m.displayName,
-          avatar: m.user.avatar,
-          joinedAt: m.joinedAt?.toISOString() || null,
-          roles: m.roles.cache.map((r) => ({ id: r.id, name: r.name, color: r.hexColor })),
-        })),
-        channels: guild.channels.cache
-          .filter((c) => c.parentId === null)
-          .sort((a, b) => 'position' in a && 'position' in b ? (a as { position: number }).position - (b as { position: number }).position : 0)
-          .map((c) => ({
-            id: c.id,
-            name: c.name,
-            type: c.type,
+        result.push({
+          id: guild.id,
+          name: guild.name,
+          icon: guild.icon,
+          description: guild.description || null,
+          ownerId: guild.ownerId,
+          memberCount: guild.memberCount,
+          approximatePresenceCount: guild.approximatePresenceCount || 0,
+          boostCount: guild.premiumSubscriptionCount || 0,
+          boostTier: guild.premiumTier as number,
+          verificationLevelName: VERIFICATION_NAMES[guild.verificationLevel] || '未知',
+          nsfwLevelName: NSFW_NAMES[guild.nsfwLevel] || '未知',
+          preferredLocale: guild.preferredLocale,
+          vanityUrlCode: guild.vanityURLCode || null,
+          features: (guild.features as string[]).map((f) => FEATURE_LABELS[f] || f),
+          boostTierName: BOOST_TIER_NAMES[guild.premiumTier] || '无',
+          emojiCount: guild.emojis.cache.size,
+          stickerCount: guild.stickers.cache.size,
+          createdAt: guild.createdAt.toISOString(),
+          members: guild.members.cache.map((m) => ({
+            id: m.user.id,
+            username: m.user.username,
+            displayName: m.displayName,
+            avatar: m.user.avatar,
+            joinedAt: m.joinedAt?.toISOString() || null,
+            roles: m.roles.cache.map((r) => ({ id: r.id, name: r.name, color: r.hexColor })),
           })),
-        roles: guild.roles.cache
-          .sort((a, b) => b.position - a.position)
-          .map((r) => ({
-            id: r.id,
-            name: r.name,
-            color: r.hexColor,
-            position: r.position,
-            memberCount: r.members.size,
-            hoist: r.hoist,
-            managed: r.managed,
-            permissions: r.permissions.bitfield.toString(),
-          })),
-      });
+          channels: guild.channels.cache
+            .filter((c) => c.parentId === null)
+            .sort((a, b) => 'position' in a && 'position' in b ? (a as { position: number }).position - (b as { position: number }).position : 0)
+            .map((c) => ({
+              id: c.id,
+              name: c.name,
+              type: c.type,
+            })),
+          roles: guild.roles.cache
+            .sort((a, b) => b.position - a.position)
+            .map((r) => ({
+              id: r.id,
+              name: r.name,
+              color: r.hexColor,
+              position: r.position,
+              memberCount: r.members.size,
+              hoist: r.hoist,
+              managed: r.managed,
+              permissions: r.permissions.bitfield.toString(),
+            })),
+        });
+      }
+
+      res.json({ guilds: result });
+    } finally {
+      try { client.destroy(); } catch { /* ignore */ }
     }
-
-    await client.destroy();
-
-    res.json({ guilds: result });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     res.status(500).json({ error: message });

@@ -270,10 +270,14 @@ export async function restoreFromGitHub(): Promise<boolean> {
 }
 
 /**
- * 立即执行备份。
+ * 立即执行备份。所有错误内部消化，不会抛出。
  */
 export async function backupNow(): Promise<void> {
-  await doBackup();
+  try {
+    await doBackup();
+  } catch (err) {
+    console.error('[Backup] backupNow 失败:', err instanceof Error ? err.message : err);
+  }
 }
 
 async function doBackup(): Promise<void> {

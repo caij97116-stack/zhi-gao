@@ -59,7 +59,9 @@ class BotManager {
           console.log(`Bot ${bot.name} 尚未加入任何服务器`);
         }
 
-        this.registerCommands(botId, client!);
+        this.registerCommands(botId, client!).catch((err) => {
+          console.error(`registerCommands failed for bot ${botId}:`, err);
+        });
         this.registerEvents(botId, client!);
       });
 
