@@ -26,7 +26,7 @@ botsRouter.get('/', (_req: Request, res: Response) => {
 });
 
 botsRouter.post('/', async (req: Request, res: Response) => {
-  const { name, token, avatar, templateId } = req.body;
+  const { name, token, avatar, templateId, guildId } = req.body;
 
   if (!name || !token) {
     res.status(400).json({ error: 'name and token are required' });
@@ -52,8 +52,8 @@ botsRouter.post('/', async (req: Request, res: Response) => {
     const encryptedToken = encryptToken(token);
 
     db.prepare(
-      'INSERT INTO bots (id, name, avatar, token, status, client_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(botId, name, avatar || null, encryptedToken, 'offline', clientId, now, now);
+      'INSERT INTO bots (id, name, avatar, token, status, client_id, guild_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(botId, name, avatar || null, encryptedToken, 'offline', clientId, guildId || null, now, now);
 
     const tpl = templateId ? templates.find((t) => t.id === templateId) : null;
     if (tpl) {

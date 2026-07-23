@@ -125,7 +125,7 @@ export interface GuildChannel {
 
 export const botsApi = {
   list: () => api.get<Bot[]>('/bots').then((r) => r.data),
-  create: (data: { name: string; token: string; avatar?: string; templateId?: string }) =>
+  create: (data: { name: string; token: string; avatar?: string; templateId?: string; guildId?: string }) =>
     api.post<Bot>(`/bots`, data).then((r) => r.data),
   get: (id: string) => api.get<BotDetail>(`/bots/${id}`).then((r) => r.data),
   update: (id: string, data: { name?: string; avatar?: string }) =>

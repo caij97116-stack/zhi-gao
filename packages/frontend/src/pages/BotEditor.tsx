@@ -113,9 +113,14 @@ export function BotEditor() {
           <p className="text-sm text-gray-300 mb-2">
             将 Bot 加入你的服务器：
           </p>
-          <code className="text-xs text-indigo-400 break-all bg-gray-900 px-3 py-2 rounded block">
-            https://discord.com/oauth2/authorize?client_id={bot.clientId}&permissions=8&scope=bot%20applications.commands
+          <code className="text-xs text-indigo-400 break-all bg-gray-900 px-3 py-2 rounded block mb-2">
+            https://discord.com/oauth2/authorize?client_id={bot.clientId}&permissions=8&scope=bot%20applications.commands{bot.guildId ? `&guild_id=${bot.guildId}&disable_guild_select=true` : ''}
           </code>
+          {bot.guildId ? (
+            <p className="text-xs text-green-400">已锁定目标服务器，点击链接直接授权即可</p>
+          ) : (
+            <p className="text-xs text-yellow-400">请先在创建时选择目标服务器，或手动在授权页面选择</p>
+          )}
         </div>
       )}
 
