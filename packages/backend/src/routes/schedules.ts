@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDatabase } from '../db/database.js';
-import { scheduleBackup } from '../services/githubStorage.js';
+import { backupNow } from '../services/githubStorage.js';
 
 export const scheduleRouter = Router();
 
@@ -64,7 +64,7 @@ scheduleRouter.post('/:botId/schedules', (req: Request, res: Response) => {
     createdAt: now,
     updatedAt: now,
   });
-  scheduleBackup();
+  backupNow();
 });
 
 scheduleRouter.put('/:botId/schedules/:id', (req: Request, res: Response) => {
@@ -82,12 +82,12 @@ scheduleRouter.put('/:botId/schedules/:id', (req: Request, res: Response) => {
   ).run(enabled !== undefined ? (enabled ? 1 : 0) : schedule.enabled, cronExpression || schedule.cron_expression, now, req.params.id);
 
   res.json({ ...schedule, enabled: enabled !== undefined ? enabled : !!schedule.enabled, updated_at: now });
-  scheduleBackup();
+  backupNow();
 });
 
 scheduleRouter.delete('/:botId/schedules/:id', (req: Request, res: Response) => {
   const db = getDatabase();
   db.prepare('DELETE FROM schedules WHERE id = ? AND bot_id = ?').run(req.params.id, req.params.botId);
   res.json({ success: true });
-  scheduleBackup();
+  backupNow();
 });

@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getDatabase } from '../db/database.js';
 import { encryptToken } from '../services/crypto.js';
 import { botManager } from '../services/botManager.js';
-import { scheduleBackup } from '../services/githubStorage.js';
+import { backupNow } from '../services/githubStorage.js';
 import { templates } from './templates.js';
 import type { BotRow, CommandRow, EventRow, Command, EventConfig } from '../models/types.js';
 
@@ -92,7 +92,7 @@ botsRouter.post('/', async (req: Request, res: Response) => {
       createdAt: now,
       updatedAt: now,
     });
-    scheduleBackup();
+    backupNow();
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     const code = (err as Record<string, unknown>)?.code;
@@ -167,7 +167,7 @@ botsRouter.put('/:id', (req: Request, res: Response) => {
   );
 
   res.json({ ...bot, name: name || bot.name, avatar: avatar !== undefined ? avatar : bot.avatar, updated_at: now });
-  scheduleBackup();
+  backupNow();
 });
 
 botsRouter.delete('/:id', (req: Request, res: Response) => {
@@ -182,5 +182,5 @@ botsRouter.delete('/:id', (req: Request, res: Response) => {
   botManager.stopBot(req.params.id);
   db.prepare('DELETE FROM bots WHERE id = ?').run(req.params.id);
   res.json({ success: true });
-  scheduleBackup();
+  backupNow();
 });
